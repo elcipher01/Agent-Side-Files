@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using NextHorizon.Models;
+using NextHorizon.Filters;
 using Microsoft.EntityFrameworkCore;
 
 namespace NextHorizon.Controllers
 {
+    [AuthenticationFilter]
     public class AgentController : Controller
     {
         private readonly AppDbContext _context;
