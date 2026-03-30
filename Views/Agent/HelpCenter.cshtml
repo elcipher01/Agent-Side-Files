@@ -687,104 +687,18 @@ var agentInitials = string.Join("", agentName.Trim().Split(new char[]{' '}, Stri
 <script>
 (function () {
 
-    /* ── logged-in agent from session ─────────────────────────── */
     var AGENT_NAME     = '@agentName';
     var AGENT_INITIALS = '@agentInitials';
 
-    /* ── helpers ──────────────────────────────────────────────── */
     const COLS = ['#2980b9','#e67e22','#27ae60','#8e44ad','#e74c3c','#16a085','#d35400','#2c3e50'];
     function ac(n) { let h=0; for(let i=0;i<n.length;i++) h=n.charCodeAt(i)+((h<<5)-h); return COLS[Math.abs(h)%COLS.length]; }
     function ini(n) { return n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase(); }
     function isResolvedStatus(s) { return s === 'closed' || s === 'resolved'; }
 
-    /* ── seed data ────────────────────────────────────────────── */
-    let tickets = [
-        {
-            id:'NH-00421', sender:'Maria Reyes', email:'m.reyes@email.com', stype:'Customer',
-            cat:'Orders', priority:'high', status:'urgent',
-            subject:'Order not received',
-            date:'Mar 17', fullDate:'Mar 17, 2025', time:'9:30 AM',
-            reason:'Hi, I placed my order (#ORD-8831) almost two weeks ago and it still has not arrived. The tracking has not updated since March 13. This was a gift and I am very worried. Please help resolve this as soon as possible!',
-            attachments:['order_screenshot.png'],
-            messages:[
-                { from:'Maria Reyes', role:'user', text:'Hi, tracking hasn\'t updated since March 13. Please help!', time:'Mar 17 · 9:42 AM' },
-                { from:'Agent M. Rivera', role:'agent', text:'Hi Maria! I\'m so sorry to hear that. I\'ve escalated this to our logistics team and will follow up within 2 hours with a full update.', time:'Mar 17 · 10:05 AM' },
-            ]
-        },
-        {
-            id:'NH-00418', sender:'Juan Dela Cruz', email:'jdc@email.com', stype:'Customer',
-            cat:'Returns', priority:'medium', status:'open',
-            subject:'Return request — wrong item shipped',
-            date:'Mar 16', fullDate:'Mar 16, 2025', time:'2:15 PM',
-            reason:'I received completely the wrong item. I ordered running shoes (size 10) but received a shirt instead. I need to return this and get the correct item delivered.',
-            attachments:['wrong_item_photo.jpg','packing_slip.pdf'],
-            messages:[
-                { from:'Juan Dela Cruz', role:'user', text:'I received the completely wrong item. Photos attached as proof.', time:'Mar 16 · 2:15 PM' },
-            ]
-        },
-        {
-            id:'NH-00415', sender:'Ana Santos', email:'anas@email.com', stype:'Customer',
-            cat:'Payments', priority:'high', status:'pending',
-            subject:'GCash payment debited, order still unpaid',
-            date:'Mar 15', fullDate:'Mar 15, 2025', time:'11:05 AM',
-            reason:'My GCash was charged ₱2,350 for my order but the platform still shows payment as failed. The money is gone from my account. Please investigate and resolve this immediately.',
-            attachments:['gcash_transaction.png'],
-            messages:[
-                { from:'Ana Santos', role:'user', text:'My GCash was charged ₱2,350 but the order shows payment failed. Please refund or confirm the order.', time:'Mar 15 · 11:05 AM' },
-                { from:'Agent M. Rivera', role:'agent', text:'Hi Ana, I\'ve raised this with our payments team. They\'ll verify the transaction and respond within 24 hours.', time:'Mar 15 · 11:35 AM' },
-            ]
-        },
-        {
-            id:'NH-00410', sender:'Kevin Tan', email:'ktan@email.com', stype:'Customer',
-            cat:'Payments', priority:'medium', status:'open',
-            subject:'Refund not processed after return',
-            date:'Mar 14', fullDate:'Mar 14, 2025', time:'4:50 PM',
-            reason:'I returned my item (Return ID: RET-2201) over 8 business days ago and my refund has still not appeared on my credit card. The return was confirmed accepted by your team.',
-            attachments:[],
-            messages:[
-                { from:'Kevin Tan', role:'user', text:'My return was accepted 8 days ago but I still haven\'t received my refund. Reference RET-2201.', time:'Mar 14 · 4:50 PM' },
-            ]
-        },
-        {
-            id:'NH-00407', sender:'TrailMasters Store', email:'trailmasters@shop.com', stype:'Seller',
-            cat:'Dispute', priority:'high', status:'urgent',
-            subject:'Buyer falsely claiming non-delivery',
-            date:'Mar 14', fullDate:'Mar 14, 2025', time:'10:20 AM',
-            reason:'Buyer #USR-5512 opened a dispute claiming non-receipt. We have courier confirmation of delivery on March 11 at 2:34 PM with a signed receipt. We request the dispute be closed in our favor.',
-            attachments:['delivery_receipt.pdf','courier_confirmation.png'],
-            messages:[
-                { from:'TrailMasters Store', role:'user', text:'We have a signed delivery receipt from March 11. Buyer claim is false. Please close the dispute in our favor.', time:'Mar 14 · 10:20 AM' },
-            ]
-        },
-        {
-            id:'NH-00400', sender:'Apex Athletics', email:'apex@athletics.ph', stype:'Seller',
-            cat:'Payments', priority:'high', status:'pending',
-            subject:'Payout delayed — June settlement missing',
-            date:'Mar 12', fullDate:'Mar 12, 2025', time:'9:00 AM',
-            reason:'Our June payout of ₱12,400 was supposed to be released on July 5 but has not been received. Our bank details have not changed. Please check the status and release the funds immediately.',
-            attachments:['bank_statement.pdf'],
-            messages:[
-                { from:'Apex Athletics', role:'user', text:'Our June payout of ₱12,400 has not been received. Please check and release urgently.', time:'Mar 12 · 9:00 AM' },
-                { from:'Agent M. Rivera', role:'agent', text:'Hi Apex! I\'ve flagged this to our finance team. They\'ll review within 1 business day.', time:'Mar 12 · 10:15 AM' },
-            ]
-        },
-        {
-            id:'NH-00395', sender:'Lisa Cruz', email:'lcruz@email.com', stype:'Customer',
-            cat:'Account', priority:'low', status:'closed',
-            subject:'Cannot log in after password reset',
-            date:'Mar 10', fullDate:'Mar 10, 2025', time:'3:30 PM',
-            reason:'After resetting my password using the forgot-password link, I keep getting an invalid credentials error even though I followed every step correctly.',
-            attachments:[],
-            messages:[
-                { from:'Lisa Cruz', role:'user', text:'I reset my password but still can\'t log in. Getting invalid credentials every time.', time:'Mar 10 · 3:30 PM' },
-                { from:'Agent M. Rivera', role:'agent', text:'Hi Lisa! I\'ve manually cleared your session cache. Please try logging in now.', time:'Mar 10 · 4:00 PM' },
-                { from:'Lisa Cruz', role:'user', text:'It worked! Thank you so much!', time:'Mar 11 · 8:55 AM' },
-                { from:'Agent M. Rivera', role:'agent', text:'Great! Marking this as resolved. Reach out if anything else comes up.', time:'Mar 11 · 9:00 AM' },
-            ]
-        },
-    ];
-
+    let tickets = [];
     let aStat = 'queueing', selId = null;
+    let lastMessageId = 0;
+    let pollingInterval = null;
 
     function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 
@@ -827,7 +741,6 @@ var agentInitials = string.Join("", agentName.Trim().Split(new char[]{' '}, Stri
         }));
     }
 
-    /* ── TIMER ────────────────────────────────────────────────── */
     let timerInterval = null, timerSeconds = 180, convEnded = false;
 
     function startTimer() {
@@ -866,6 +779,7 @@ var agentInitials = string.Join("", agentName.Trim().Split(new char[]{' '}, Stri
     function endConv() {
         convEnded = true;
         clearInterval(timerInterval);
+        clearInterval(pollingInterval);
         document.getElementById('hccInputRow').classList.add('ended');
         document.getElementById('hccChatIn').placeholder = 'Conversation has ended.';
         const endBtn = document.getElementById('hccEndBtn');
@@ -888,7 +802,6 @@ var agentInitials = string.Join("", agentName.Trim().Split(new char[]{' '}, Stri
         endConv();
     };
 
-    /* ── filter ───────────────────────────────────────────────── */
     function filtered() {
         const q = (document.getElementById('hclQ')?.value || '').toLowerCase().trim();
         return tickets.filter(t => {
@@ -910,8 +823,12 @@ var agentInitials = string.Join("", agentName.Trim().Split(new char[]{' '}, Stri
     };
     window.hcFilter = function () { renderList(); };
 
-    /* ── render list ──────────────────────────────────────────── */
     function renderList() {
+        const queueing = tickets.filter(t => !isResolvedStatus(t.status)).length;
+        const resolved = tickets.filter(t => isResolvedStatus(t.status)).length;
+        document.getElementById('statQueueing').textContent = queueing;
+        document.getElementById('statResolved').textContent = resolved;
+
         const rows = filtered();
         const list = document.getElementById('hclList');
         list.innerHTML = '';
@@ -942,10 +859,41 @@ var agentInitials = string.Join("", agentName.Trim().Split(new char[]{' '}, Stri
         });
     }
 
-    /* ── open ticket ──────────────────────────────────────────── */
+    function loadMessages(convId) {
+        const body = document.getElementById('hccBody');
+        if (!body) return;
+        fetch('/Agent/GetMessages?conversationId=' + convId)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.messages.length) {
+                    const newMessages = data.messages.filter(m => m.id > lastMessageId);
+                    newMessages.forEach(m => {
+                        const isA = m.senderRole === 'Agent';
+                        const senderLabel = isA ? AGENT_NAME : m.senderRole + ' #' + m.senderId;
+                        const avatarColor = isA ? '#1a1a2e' : ac(String(m.senderId));
+                        const avatarInitials = isA ? AGENT_INITIALS : m.senderRole.charAt(0).toUpperCase();
+                        const w = document.createElement('div');
+                        w.className = 'hcc-msg' + (isA ? ' agent' : '');
+                        w.innerHTML = `
+                            <div class="hcc-msg-av" style="background:${avatarColor}">${avatarInitials}</div>
+                            <div class="hcc-msg-wrap">
+                                <div class="hcc-msg-name">${senderLabel}</div>
+                                <div class="hcc-msg-bub">${m.messageText}</div>
+                                <div class="hcc-msg-time">${new Date(m.createdAt).toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit'})}</div>
+                            </div>`;
+                        body.appendChild(w);
+                        if (m.id > lastMessageId) lastMessageId = m.id;
+                    });
+                    if (newMessages.length) body.scrollTop = body.scrollHeight;
+                }
+            })
+            .catch(() => {});
+    }
+
     function openTicket(id) {
         selId = id;
         const t = tickets.find(x => x.id === id);
+        if (!t) return;
         renderList();
 
         document.getElementById('hccEmpty').style.display = 'none';
@@ -966,20 +914,13 @@ var agentInitials = string.Join("", agentName.Trim().Split(new char[]{' '}, Stri
         dd.className = 'hcc-date-div'; dd.textContent = t.fullDate;
         body.appendChild(dd);
 
-        t.messages.forEach(m => {
-            const isA = m.role === 'agent';
-            const w = document.createElement('div');
-            w.className = 'hcc-msg' + (isA ? ' agent' : '');
-            w.innerHTML = `
-                <div class="hcc-msg-av" style="background:${isA ? '#1a1a2e' : ac(m.from)}">${ini(m.from)}</div>
-                <div class="hcc-msg-wrap">
-                    <div class="hcc-msg-name">${m.from}</div>
-                    <div class="hcc-msg-bub">${m.text}</div>
-                    <div class="hcc-msg-time">${m.time}</div>
-                </div>`;
-            body.appendChild(w);
-        });
-        body.scrollTop = body.scrollHeight;
+        clearInterval(pollingInterval);
+        lastMessageId = 0;
+
+        if (t.convId) {
+            loadMessages(t.convId);
+            pollingInterval = setInterval(() => loadMessages(t.convId), 3000);
+        }
 
         document.getElementById('hccChatIn').value = '';
         document.getElementById('hccChatIn').placeholder = 'Type a reply to the customer…';
@@ -1006,7 +947,7 @@ var agentInitials = string.Join("", agentName.Trim().Split(new char[]{' '}, Stri
 
         const aBlk = document.getElementById('hcdAttachBlk');
         const chips = document.getElementById('hcdChips');
-        if (t.attachments.length) {
+        if (t.attachments && t.attachments.length) {
             aBlk.style.display = 'block';
             chips.innerHTML = '';
             t.attachments.forEach(a => {
@@ -1022,7 +963,6 @@ var agentInitials = string.Join("", agentName.Trim().Split(new char[]{' '}, Stri
         document.getElementById('hcdUpdateSel').value = isResolvedStatus(t.status) ? 'resolved' : 'queueing';
     }
 
-    /* ── send ─────────────────────────────────────────────────── */
     window.hcSend = function () {
         if (convEnded) return;
         const inp = document.getElementById('hccChatIn');
@@ -1030,7 +970,16 @@ var agentInitials = string.Join("", agentName.Trim().Split(new char[]{' '}, Stri
         if (!text || !selId) return;
         const t = tickets.find(x => x.id === selId);
         const now = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-        t.messages.push({ from: AGENT_NAME, role: 'agent', text, time: `Now · ${now}` });
+
+        if (t.convId) {
+            fetch('/Agent/SendMessage', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ conversationId: t.convId, messageText: text })
+            })
+            .then(r => r.json())
+            .catch(() => {});
+        }
 
         const body = document.getElementById('hccBody');
         const w = document.createElement('div');
@@ -1047,30 +996,23 @@ var agentInitials = string.Join("", agentName.Trim().Split(new char[]{' '}, Stri
         inp.value = '';
     };
 
-    /* ── agent status ─────────────────────────────────────────── */
     window.updateAgentStatus = function () {
         const statusSelect = document.getElementById('agentStatusSelect');
         const indicator    = document.getElementById('statusIndicator');
         const status       = statusSelect.value;
-
         indicator.className = `hcd-status-indicator ${status}`;
-
         fetch('/Agent/UpdateAgentStatus', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ agentName: AGENT_NAME, status: status })
         })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            if (!data.success) console.error('Failed to update status:', data.message);
-        })
-        .catch(function(e) { console.error('Could not reach server:', e); });
+        .then(r => r.json())
+        .catch(e => console.error('Could not reach server:', e));
     };
 
-    /* ── load saved status on page init ──────────────────────── */
     fetch('/Agent/GetAgentStatus?agentName=' + encodeURIComponent(AGENT_NAME))
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
+        .then(r => r.json())
+        .then(data => {
             if (data.success) {
                 const sel = document.getElementById('agentStatusSelect');
                 const ind = document.getElementById('statusIndicator');
@@ -1078,9 +1020,8 @@ var agentInitials = string.Join("", agentName.Trim().Split(new char[]{' '}, Stri
                 if (ind) ind.className = 'hcd-status-indicator ' + data.status;
             }
         })
-        .catch(function(e) { console.error('Could not load agent status:', e); });
+        .catch(e => console.error('Could not load agent status:', e));
 
-    /* ── save status ──────────────────────────────────────────── */
     window.hcSaveStatus = function () {
         if (!selId) return;
         const t = tickets.find(x => x.id === selId);
@@ -1089,7 +1030,6 @@ var agentInitials = string.Join("", agentName.Trim().Split(new char[]{' '}, Stri
         openTicket(selId);
     };
 
-    /* ── resolve ──────────────────────────────────────────────── */
     window.hcResolve = function () {
         if (!selId) return;
         tickets.find(x => x.id === selId).status = 'resolved';
@@ -1099,15 +1039,40 @@ var agentInitials = string.Join("", agentName.Trim().Split(new char[]{' '}, Stri
         openTicket(selId);
     };
 
-    /* ── stubs ────────────────────────────────────────────────── */
     window.hcAttach   = function () { alert('Attach — connect to your file upload endpoint.'); };
     window.hcTransfer = function () { alert('Transfer — connect to your agent assignment endpoint.'); };
     window.hcOpenNew  = function () { alert('New Ticket — connect to your ticket creation flow.'); };
 
-    /* ── init ─────────────────────────────────────────────────── */
     initResizers();
-    renderList();
-    if (tickets.length) openTicket(tickets[0].id);
+
+    fetch('/Agent/GetConversations')
+        .then(r => r.json())
+        .then(data => {
+            if (data.success && data.conversations.length) {
+                tickets = data.conversations.map(c => ({
+                    id: 'CONV-' + c.id,
+                    convId: c.id,
+                    sender: 'Seller #' + c.sellerId,
+                    email: '',
+                    stype: 'Seller',
+                    cat: 'Support',
+                    priority: 'medium',
+                    status: c.status === 'Active' ? 'open' : 'closed',
+                    subject: 'Conversation #' + c.id,
+                    date: new Date(c.createdAt).toLocaleDateString('en-US', {month:'short', day:'numeric'}),
+                    fullDate: new Date(c.createdAt).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}),
+                    time: new Date(c.createdAt).toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit'}),
+                    reason: '',
+                    attachments: [],
+                    messages: []
+                }));
+            }
+            renderList();
+            if (tickets.length) openTicket(tickets[0].id);
+        })
+        .catch(() => {
+            renderList();
+        });
 
 })();
 </script>

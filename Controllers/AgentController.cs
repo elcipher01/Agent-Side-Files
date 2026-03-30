@@ -77,6 +77,101 @@ namespace NextHorizon.Controllers
             return RedirectToAction("FAQs");
         }
 
+        // ── CONVERSATIONS ─────────────────────────────────────────
+
+        [HttpGet]
+        public async Task<IActionResult> GetConversations()
+        {
+            var userId = HttpContext.Session.GetInt32("UserId") ?? 0;
+            if (userId == 0)
+                return Json(new { success = false, message = "Not logged in." });
+
+            var conversations = await _context.SupportConversations
+                .Where(c => c.AgentId == userId)
+                .OrderByDescending(c => c.CreatedAt)
+                .Select(c => new {
+                    c.Id,
+                    c.SellerId,
+                    c.AgentId,
+                    c.Status,
+                    c.CreatedAt
+                })
+                .ToListAsync();
+
+            return Json(new { success = true, conversations });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetMessages(int conversationId)
+        {
+            var userId = HttpContext.Session.GetInt32("UserId") ?? 0;
+            if (userId == 0)
+                return Json(new { success = false, message = "Not logged in." });
+
+            // Verify this conversation belongs to this agent
+            var conversation = await _context.SupportConversations
+                .FirstOrDefaultAsync(c => c.Id == conversationId && c.AgentId == userId);
+
+            if (conversation == null)
+                return Json(new { success = false, message = "Conversation not found." });
+
+            var messages = await _context.SupportMessages
+                .Where(m => m.ConversationId == conversationId)
+                .OrderBy(m => m.CreatedAt)
+                .Select(m => new {
+                    m.Id,
+                    m.ConversationId,
+                    m.SenderId,
+                    m.SenderRole,
+                    m.MessageText,
+                    m.CreatedAt
+                })
+                .ToListAsync();
+
+            return Json(new { success = true, messages });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> SendMessage([FromBody] SendMessageRequest model)
+        {
+            var userId = HttpContext.Session.GetInt32("UserId") ?? 0;
+            if (userId == 0)
+                return Json(new { success = false, message = "Not logged in." });
+
+            if (model == null || model.ConversationId <= 0 || string.IsNullOrWhiteSpace(model.MessageText))
+                return BadRequest(new { success = false, message = "Invalid request." });
+
+            // Verify this conversation belongs to this agent
+            var conversation = await _context.SupportConversations
+                .FirstOrDefaultAsync(c => c.Id == model.ConversationId && c.AgentId == userId);
+
+            if (conversation == null)
+                return Json(new { success = false, message = "Conversation not found." });
+
+            var message = new SupportMessage
+            {
+                ConversationId = model.ConversationId,
+                SenderId = userId,
+                SenderRole = "Agent",
+                MessageText = model.MessageText,
+                CreatedAt = DateTime.Now
+            };
+
+            _context.SupportMessages.Add(message);
+            await _context.SaveChangesAsync();
+
+            return Json(new
+            {
+                success = true,
+                id = message.Id,
+                conversationId = message.ConversationId,
+                senderId = message.SenderId,
+                senderRole = message.SenderRole,
+                messageText = message.MessageText,
+                createdAt = message.CreatedAt
+            });
+        }
+
         // ── AGENT STATUS ──────────────────────────────────────────
 
         [HttpGet]
@@ -131,5 +226,11 @@ namespace NextHorizon.Controllers
     {
         public string AgentName { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
+    }
+
+    public class SendMessageRequest
+    {
+        public int ConversationId { get; set; }
+        public string MessageText { get; set; } = string.Empty;
     }
 }
